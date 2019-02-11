@@ -56,7 +56,7 @@ trait UserRoutes extends JsonSupport {
               val users: Future[Users] =
                 (userRegistryActor ? GetUsers).mapTo[Users]
               //val html = client.get("2019-02-07").map(_.getOrElse(""))
-              val htmlHead = "<html><body><p id=\"allWatts\"></p><ul id=\"TimeWatts\"></ul><script>"
+              val htmlHead = "<html><body><ul id=\"TimeWatts\"></ul><script>"
               val js = "window.onload = function(){var xhttp = new XMLHttpRequest(); xhttp.onreadystatechange = function() {if (this.readyState == 4 && this.status == 200) {var json = JSON.parse(this.responseText); var count = Object.keys(json).length; var allWatt = 0.0; var countH = 0.1; var timeH=(new Date(json[0].t*1000)).toString().substr(16,2); var oldTimeH = timeH; var sumH =0.0; for(var item in json) {var node = document.createElement(\"li\"); var watt = Number(json[item].a)*12; if (watt > 5) { sumH+=watt; countH+=1; timeH=(new Date(json[item].t*1000)).toString().substr(16,2); if(oldTimeH != timeH){var textnode = document.createTextNode((new Date(json[item].t*1000)).toString().substr(4,20) + '  ' + watt.toFixed(2) + ' Вт ' + '; AVG Power = ' + (sumH/countH).toFixed(2)); node.appendChild(textnode); document.getElementById(\"TimeWatts\").appendChild(node); sumH = 0; countH=0.1; oldTimeH = timeH;}; allWatt+=watt; }} }}; xhttp.open(\"POST\", \"/\", true);xhttp.setRequestHeader(\"Content-type\", \"application/json\");xhttp.send(JSON.stringify({\"name\":\"\", \"age\":0, \"countryOfResidence\":\"\"}));}"
               val htmlTail = "</script></body></html>"
               val html = htmlHead + js + htmlTail
