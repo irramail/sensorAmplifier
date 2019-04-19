@@ -5,7 +5,7 @@ import java.util.Calendar
 
 import akka.actor.{ ActorRef, ActorSystem }
 import akka.event.Logging
-import akka.http.scaladsl.model.StatusCodes
+import akka.http.scaladsl.model.{ ContentTypes, HttpEntity, StatusCodes }
 import akka.http.scaladsl.server.Directives._
 import akka.http.scaladsl.server.Route
 import akka.http.scaladsl.server.directives.MethodDirectives.{ delete, get, post }
@@ -66,6 +66,59 @@ trait UserRoutes extends JsonSupport {
                   //val html = "<html><body><p id=\"allWatts\"></p><ul id=\"TimeWatts\"></ul><script>window.onload = function(){var xhttp = new XMLHttpRequest(); xhttp.onreadystatechange = function() {if (this.readyState == 4 && this.status == 201) {var json = JSON.parse(this.responseText); var count = Object.keys(json).length; var allWatt = 0.0; var countH = 0.1; var timeH=(new Date(json[0].t*1000)).toString().substr(16,2); var oldTimeH = timeH; var sumH =0.0; for(var item in json) {var node = document.createElement(\"li\"); var watt = Number(json[item].a)*12; if (watt > 5) { sumH+=watt; countH+=1; timeH=(new Date(json[item].t*1000)).toString().substr(16,2); if(oldTimeH != timeH){var textnode = document.createTextNode((new Date(json[item].t*1000)).toString().substr(4,20) + '  ' + watt.toFixed(2) + ' Вт ' + /*'; Hour=' + timeH + '; sumH=' + sumH + '; countH = ' + countH +*/ '; AVG Power = ' + (sumH/countH).toFixed(2)); node.appendChild(textnode); document.getElementById(\"TimeWatts\").appendChild(node); sumH = 0; countH=0.1; oldTimeH = timeH;}; allWatt+=watt; }} document.getElementById(\"allWatts\").innerHTML = (allWatt/count)/1000 + ' KWtH; ' + 'Count = ' + count + '; SumWatt = ' + allWatt }};xhttp.open(\"POST\", \"/\", true);xhttp.setRequestHeader(\"Content-type\", \"application/json\");xhttp.send(JSON.stringify({\"name\":\"\", \"age\":0, \"countryOfResidence\":\"\"}));}</script></body></html>"
                   complete((StatusCodes.OK, json.map("{\"data\":[{\"t\":0, \"a\":\"0\", \"c:\":0}," + _ + "{\"t\":0, \"a\":\"0\", \"c:\":0}]}")))
                 }
+
+              }
+            },
+            get {
+              parameter('on.as[String]) { (on) =>
+                {
+                  implicit val system = ActorSystem("redis-client")
+                  implicit val executionContext = system.dispatcher
+                  implicit val timeout = Timeout(60 seconds)
+
+                  // Redis client setup
+                  val client = RedisClient("192.168.9.9", 6379)
+
+                  val users: Future[Users] =
+                    (userRegistryActor ? GetUsers).mapTo[Users]
+
+                  //client.get("2019-02-07").map(_.getOrElse(""))
+                  //val format = new SimpleDateFormat("yyyy-MM-dd")
+                  //format.format(Calendar.getInstance().getTime())
+
+                  client.set("gpio26", "0")
+                  client.set("changedGpio", "yes")
+
+                  //val html = "<html><body><p id=\"allWatts\"></p><ul id=\"TimeWatts\"></ul><script>window.onload = function(){var xhttp = new XMLHttpRequest(); xhttp.onreadystatechange = function() {if (this.readyState == 4 && this.status == 201) {var json = JSON.parse(this.responseText); var count = Object.keys(json).length; var allWatt = 0.0; var countH = 0.1; var timeH=(new Date(json[0].t*1000)).toString().substr(16,2); var oldTimeH = timeH; var sumH =0.0; for(var item in json) {var node = document.createElement(\"li\"); var watt = Number(json[item].a)*12; if (watt > 5) { sumH+=watt; countH+=1; timeH=(new Date(json[item].t*1000)).toString().substr(16,2); if(oldTimeH != timeH){var textnode = document.createTextNode((new Date(json[item].t*1000)).toString().substr(4,20) + '  ' + watt.toFixed(2) + ' Вт ' + /*'; Hour=' + timeH + '; sumH=' + sumH + '; countH = ' + countH +*/ '; AVG Power = ' + (sumH/countH).toFixed(2)); node.appendChild(textnode); document.getElementById(\"TimeWatts\").appendChild(node); sumH = 0; countH=0.1; oldTimeH = timeH;}; allWatt+=watt; }} document.getElementById(\"allWatts\").innerHTML = (allWatt/count)/1000 + ' KWtH; ' + 'Count = ' + count + '; SumWatt = ' + allWatt }};xhttp.open(\"POST\", \"/\", true);xhttp.setRequestHeader(\"Content-type\", \"application/json\");xhttp.send(JSON.stringify({\"name\":\"\", \"age\":0, \"countryOfResidence\":\"\"}));}</script></body></html>"
+                  complete(HttpEntity(ContentTypes.`text/html(UTF-8)`, "<a href=\"?on\" style=\"display: block; text-align:center;height:50%; margin:20px auto; background-color: red; font-size:100px;\">ON</a><a href=\"?off\" style=\"display: block; text-align:center;height:50%; margin:20px auto; background-color: gray; font-size:100px;\">OFF</a>"))
+                }
+
+              }
+            },
+            get {
+              parameter('off.as[String]) { (off) =>
+                {
+                  implicit val system = ActorSystem("redis-client")
+                  implicit val executionContext = system.dispatcher
+                  implicit val timeout = Timeout(60 seconds)
+
+                  // Redis client setup
+                  val client = RedisClient("192.168.9.9", 6379)
+
+                  val users: Future[Users] =
+                    (userRegistryActor ? GetUsers).mapTo[Users]
+
+                  //client.get("2019-02-07").map(_.getOrElse(""))
+                  //val format = new SimpleDateFormat("yyyy-MM-dd")
+                  //format.format(Calendar.getInstance().getTime())
+
+                  client.set("gpio26", "1")
+                  client.set("changedGpio", "yes")
+
+                  //val html = "<html><body><p id=\"allWatts\"></p><ul id=\"TimeWatts\"></ul><script>window.onload = function(){var xhttp = new XMLHttpRequest(); xhttp.onreadystatechange = function() {if (this.readyState == 4 && this.status == 201) {var json = JSON.parse(this.responseText); var count = Object.keys(json).length; var allWatt = 0.0; var countH = 0.1; var timeH=(new Date(json[0].t*1000)).toString().substr(16,2); var oldTimeH = timeH; var sumH =0.0; for(var item in json) {var node = document.createElement(\"li\"); var watt = Number(json[item].a)*12; if (watt > 5) { sumH+=watt; countH+=1; timeH=(new Date(json[item].t*1000)).toString().substr(16,2); if(oldTimeH != timeH){var textnode = document.createTextNode((new Date(json[item].t*1000)).toString().substr(4,20) + '  ' + watt.toFixed(2) + ' Вт ' + /*'; Hour=' + timeH + '; sumH=' + sumH + '; countH = ' + countH +*/ '; AVG Power = ' + (sumH/countH).toFixed(2)); node.appendChild(textnode); document.getElementById(\"TimeWatts\").appendChild(node); sumH = 0; countH=0.1; oldTimeH = timeH;}; allWatt+=watt; }} document.getElementById(\"allWatts\").innerHTML = (allWatt/count)/1000 + ' KWtH; ' + 'Count = ' + count + '; SumWatt = ' + allWatt }};xhttp.open(\"POST\", \"/\", true);xhttp.setRequestHeader(\"Content-type\", \"application/json\");xhttp.send(JSON.stringify({\"name\":\"\", \"age\":0, \"countryOfResidence\":\"\"}));}</script></body></html>"
+                  complete(HttpEntity(ContentTypes.`text/html(UTF-8)`, "<a href=\"?on\" style=\"display: block; text-align:center;height:50%; margin:20px auto; background-color: red; font-size:100px;\">ON</a><a href=\"?off\" style=\"display: block; text-align:center;height:50%; margin:20px auto; background-color: gray; font-size:100px;\">OFF</a>"))
+                }
+
               }
             },
             post {
